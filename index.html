@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="A local-first school assessment and adaptive practice kit.">
+  <title>Kids Assessment Kit</title>
+  <style>
+    :root{font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;color:#172033;background:#f4f7fb}
+    *{box-sizing:border-box}body{margin:0}.wrap{max-width:1050px;margin:auto;padding:28px 18px 60px}
+    header{display:flex;justify-content:space-between;gap:16px;align-items:center;margin-bottom:24px}
+    .brand{font-weight:800;font-size:1.25rem;letter-spacing:-.03em}.tag{font-size:.8rem;color:#53627a}
+    .hero{background:#182b4a;color:white;border-radius:20px;padding:28px;margin-bottom:18px}
+    .hero h1{margin:0 0 8px;font-size:clamp(1.7rem,4vw,2.4rem)}.hero p{margin:0;color:#d6e0ef;max-width:650px;line-height:1.55}
+    .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:18px 0}
+    .stat,.panel{background:white;border:1px solid #e2e8f0;border-radius:16px;padding:18px}
+    .stat strong{display:block;font-size:1.6rem;margin-top:5px}.muted{color:#64748b;font-size:.88rem}
+    .toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:18px 0}
+    select,button{font:inherit;border-radius:10px;padding:10px 13px;border:1px solid #cbd5e1;background:white;color:#172033}
+    button{cursor:pointer;font-weight:650}button.primary{background:#2457a6;color:white;border-color:#2457a6}
+    button:disabled{opacity:.45;cursor:not-allowed}.layout{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(250px,1fr);gap:16px}
+    .question{font-size:1.15rem;font-weight:700;line-height:1.45;margin:12px 0 18px}
+    .choice{display:block;width:100%;text-align:left;margin:9px 0;padding:13px;border:1px solid #d8e1ed;border-radius:12px;background:#fff}
+    .choice:hover{border-color:#4778bd;background:#f6f9ff}.choice.selected{border-color:#2457a6;background:#edf4ff}
+    .choice.correct{border-color:#23845b;background:#effaf4}.choice.incorrect{border-color:#c24c4c;background:#fff2f2}
+    .feedback{min-height:26px;margin:12px 0;color:#475569;line-height:1.45}.actions{display:flex;gap:10px;flex-wrap:wrap}
+    .progress{height:8px;background:#e7edf5;border-radius:99px;overflow:hidden}.progress span{display:block;height:100%;background:#4778bd;width:0}
+    .side h2,.panel h2{font-size:1.05rem;margin:0 0 12px}.list{padding-left:18px;line-height:1.6}.empty{color:#64748b;font-size:.9rem}
+    footer{margin-top:22px;color:#64748b;font-size:.8rem;line-height:1.5}
+    @media(max-width:720px){.layout{grid-template-columns:1fr}.stats{gap:8px}.stat{padding:13px}.stat strong{font-size:1.3rem}header{align-items:flex-start;flex-direction:column}}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <header><div class="brand">📘 Kids Assessment Kit</div><div class="tag">Local-first learning • Year 3 starter</div></header>
+  <section class="hero">
+    <h1>Learn what to practise next.</h1>
+    <p>Run a short quiz, review mistakes and export them as a JSON file for targeted practice. Your attempts stay in this browser unless you export them.</p>
+  </section>
+  <section class="stats" aria-label="Progress summary">
+    <div class="stat"><span class="muted">Questions in this set</span><strong id="totalStat">—</strong></div>
+    <div class="stat"><span class="muted">Correct this session</span><strong id="correctStat">0</strong></div>
+    <div class="stat"><span class="muted">To review</span><strong id="wrongStat">0</strong></div>
+  </section>
+  <div class="toolbar">
+    <label for="subjectFilter" class="muted">Subject</label>
+    <select id="subjectFilter"><option value="all">All subjects</option></select>
+    <button id="startBtn" class="primary">Start / Restart quiz</button>
+    <button id="exportBtn">Export mistakes JSON</button>
+  </div>
+  <div class="layout">
+    <main class="panel">
+      <div class="muted" id="position">Loading question bank…</div>
+      <div class="progress" style="margin:12px 0 18px"><span id="progressBar"></span></div>
+      <div id="quizArea">
+        <p class="empty">Loading your question bank. If this screen remains blank, open the app through GitHub Pages or a local web server.</p>
+      </div>
+    </main>
+    <aside class="panel side">
+      <h2>Review list</h2>
+      <div id="reviewList" class="empty">Mistakes will appear here after you answer.</div>
+      <hr style="border:0;border-top:1px solid #e8edf3;margin:18px 0">
+      <h2>How it works</h2>
+      <ol class="list">
+        <li>Choose a subject and start.</li>
+        <li>Answer each question.</li>
+        <li>Review incorrect answers.</li>
+        <li>Export mistakes for new targeted practice.</li>
+      </ol>
+    </aside>
+  </div>
+  <footer>Starter MVP. Demo questions are illustrative only and are not represented as extracted from the uploaded curriculum resources. Progress is stored in this browser using local storage.</footer>
+</div>
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  let bank = [], questions = [], index = 0, selected = null, session = [], mistakes = [];
+  const saved = JSON.parse(localStorage.getItem('kidsAssessmentHistory') || '[]');
+  $('correctStat').textContent = saved.reduce((n,a)=>n+(a.correct||0),0);
+  async function init(){
+    try {
+      const response = await fetch('./data/question-bank.json');
+      if(!response.ok) throw new Error('Could not load question bank');
+      const data = await response.json(); bank = data.questions || [];
+      const subjects = [...new Set(bank.map(q=>q.subject))];
+      subjects.forEach(s=>{const o=document.createElement('option');o.value=s;o.textContent=s;$('subjectFilter').append(o)});
+      $('totalStat').textContent = bank.length;
+      $('wrongStat').textContent = '0';
+      start();
+    } catch(e) {
+      $('quizArea').innerHTML = '<p class="empty">Question bank could not be loaded. Run this site using a local web server, or open the published GitHub Pages site.</p>';
+      $('position').textContent = 'Question bank unavailable';
+    }
+  }
+  function start(){
+    const subject=$('subjectFilter').value;
+    questions=bank.filter(q=>subject==='all'||q.subject===subject);
+    index=0;selected=null;session=[];mistakes=[];
+    render();
+  }
+  function render(){
+    $('wrongStat').textContent=mistakes.length;
+    $('reviewList').innerHTML=mistakes.length?'<ul class="list">'+mistakes.map(m=>'<li>'+escapeHtml(m.skill||m.subject)+': '+escapeHtml(m.prompt)+'</li>').join('')+'</ul>':'<span class="empty">No mistakes yet. Your review list will build as you answer.</span>';
+    $('progressBar').style.width=(questions.length?index/questions.length*100:0)+'%';
+    if(index>=questions.length){
+      $('position').textContent='Quiz complete';
+      const correct=session.filter(a=>a.isCorrect).length;
+      $('quizArea').innerHTML='<h2>Nice work!</h2><p>You got <strong>'+correct+' out of '+questions.length+'</strong> correct ('+(questions.length?Math.round(correct/questions.length*100):0)+'%).</p><p class="muted">'+mistakes.length+' question(s) added to your review list.</p><button class="primary" id="againBtn">Try again</button>';
+      $('againBtn').onclick=start;
+      $('progressBar').style.width='100%';
+      localStorage.setItem('kidsAssessmentHistory',JSON.stringify([...saved,{date:new Date().toISOString(),correct,total:questions.length,subject:$('subjectFilter').value}].slice(-100)));
+      $('correctStat').textContent=correct;
+      return;
+    }
+    const q=questions[index]; selected=null;
+    $('position').textContent='Question '+(index+1)+' of '+questions.length+' • '+q.subject+' • '+q.skill;
+    $('quizArea').innerHTML='<div class="question">'+escapeHtml(q.prompt)+'</div><div id="choices"></div><div id="feedback" class="feedback"></div><div class="actions"><button id="checkBtn" class="primary" disabled>Check answer</button><button id="nextBtn" disabled>'+(index===questions.length-1?'Finish':'Next question')+'</button></div>';
+    q.options.forEach((option,i)=>{
+      const b=document.createElement('button');b.className='choice';b.textContent=String.fromCharCode(65+i)+'. '+option;
+      b.onclick=()=>{selected=i;document.querySelectorAll('.choice').forEach(x=>x.classList.remove('selected'));b.classList.add('selected');$('checkBtn').disabled=false};
+      $('choices').append(b);
+    });
+    $('checkBtn').onclick=()=>check(q);
+    $('nextBtn').onclick=()=>{index++;render()};
+  }
+  function check(q){
+    const ok=selected===q.answerIndex;
+    session.push({questionId:q.id,isCorrect:ok});
+    document.querySelectorAll('.choice').forEach((b,i)=>{b.disabled=true;if(i===q.answerIndex)b.classList.add('correct');else if(i===selected)b.classList.add('incorrect')});
+    $('feedback').textContent=(ok?'Correct! ':'Not quite. ')+q.explanation;
+    $('checkBtn').disabled=true;$('nextBtn').disabled=false;
+    if(!ok)mistakes.push({...q,selectedAnswerIndex:selected,correctAnswer:q.options[q.answerIndex]});
+    $('wrongStat').textContent=mistakes.length;
+    $('reviewList').innerHTML=mistakes.length?'<ul class="list">'+mistakes.map(m=>'<li>'+escapeHtml(m.skill||m.subject)+': '+escapeHtml(m.prompt)+'</li>').join('')+'</ul>':'<span class="empty">No mistakes yet.</span>';
+  }
+  function exportMistakes(){
+    const payload={schemaVersion:'1.0',exportedAt:new Date().toISOString(),source:'Kids Assessment Kit MVP',items:mistakes.map(m=>({id:m.id,subject:m.subject,yearLevel:m.yearLevel,skill:m.skill,prompt:m.prompt,options:m.options,selectedAnswerIndex:m.selectedAnswerIndex,correctAnswerIndex:m.answerIndex,correctAnswer:m.correctAnswer,explanation:m.explanation,sourceType:m.sourceType}))};
+    const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+    const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='mistakes-for-targeted-practice.json';a.click();URL.revokeObjectURL(url);
+  }
+  function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+  $('startBtn').onclick=start;$('subjectFilter').onchange=start;$('exportBtn').onclick=exportMistakes;
+  init();
+})();
+</script>
+</body>
+</html>
