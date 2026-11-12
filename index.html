@@ -27,6 +27,12 @@
     .progress{height:8px;background:#e7edf5;border-radius:99px;overflow:hidden}.progress span{display:block;height:100%;background:#4778bd;width:0}
     .side h2,.panel h2{font-size:1.05rem;margin:0 0 12px}.list{padding-left:18px;line-height:1.6}.empty{color:#64748b;font-size:.9rem}
     footer{margin-top:22px;color:#64748b;font-size:.8rem;line-height:1.5}
+    .import-panel{margin-top:16px}.import-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    .import-status{margin:12px 0;color:#475569;font-size:.9rem;line-height:1.5}
+    .gap-card{padding:12px;border:1px solid #e2e8f0;border-radius:12px;margin:9px 0;background:#fbfdff}
+    .gap-card strong{display:block;margin-bottom:4px}.gap-meta{font-size:.82rem;color:#64748b}
+    input[type=file]{max-width:100%;font:inherit;font-size:.88rem}
+
     @media(max-width:720px){.layout{grid-template-columns:1fr}.stats{gap:8px}.stat{padding:13px}.stat strong{font-size:1.3rem}header{align-items:flex-start;flex-direction:column}}
   </style>
 </head>
@@ -69,12 +75,24 @@
       </ol>
     </aside>
   </div>
+  <section class="panel import-panel">
+    <h2>Targeted practice planner</h2>
+    <p class="muted">Import a mistakes JSON export to identify skills that need more practice. Files are processed in this browser and are not uploaded.</p>
+    <div class="import-row">
+      <input id="mistakesFile" type="file" accept=".json,application/json" aria-label="Choose mistakes JSON file">
+      <button id="clearImportedBtn" type="button">Clear imported records</button>
+    </div>
+    <div id="importStatus" class="import-status" aria-live="polite">No mistake exports imported yet.</div>
+    <div id="gapSummary"><span class="empty">Your learning gaps will appear here after importing an export.</span></div>
+  </section>
   <footer>Starter MVP. Demo questions are illustrative only and are not represented as extracted from the uploaded curriculum resources. Progress is stored in this browser using local storage.</footer>
 </div>
 <script>
 (() => {
   const $ = id => document.getElementById(id);
   let bank = [], questions = [], index = 0, selected = null, session = [], mistakes = [];
+  let importedMistakes = JSON.parse(localStorage.getItem('kidsImportedMistakes') || '[]');
+
   const saved = JSON.parse(localStorage.getItem('kidsAssessmentHistory') || '[]');
   $('correctStat').textContent = saved.reduce((n,a)=>n+(a.correct||0),0);
   async function init(){
@@ -138,8 +156,50 @@
     const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
     const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='mistakes-for-targeted-practice.json';a.click();URL.revokeObjectURL(url);
   }
+  function renderGapSummary(){
+    const host=$('gapSummary');
+    if(!importedMistakes.length){host.innerHTML='<span class="empty">Your learning gaps will appear here after importing an export.</span>';return;}
+    const groups=new Map();
+    importedMistakes.forEach(item=>{
+      const key=(item.subject||'Unknown subject')+'|||'+(item.skill||'Unspecified skill');
+      if(!groups.has(key))groups.set(key,{subject:item.subject||'Unknown subject',skill:item.skill||'Unspecified skill',count:0,examples:[]});
+      const g=groups.get(key);g.count++;if(g.examples.length<3)g.examples.push(item.prompt||'');
+    });
+    host.innerHTML='<p class="muted">'+importedMistakes.length+' incorrect answer record(s) imported across '+groups.size+' skill area(s).</p>'+
+      [...groups.values()].sort((a,b)=>b.count-a.count).map(g=>
+        '<div class="gap-card"><strong>'+escapeHtml(g.subject)+' · '+escapeHtml(g.skill)+'</strong>'+
+        '<div class="gap-meta">'+g.count+' incorrect attempt(s)</div>'+
+        g.examples.map(p=>'<div class="gap-meta" style="margin-top:6px">Example: '+escapeHtml(p)+'</div>').join('')+
+        '</div>').join('');
+  }
+  async function importMistakesFile(file){
+    if(!file)return;
+    try{
+      const text=await file.text(),data=JSON.parse(text);
+      if(data.schemaVersion!=='1.0'||!Array.isArray(data.items))throw new Error('This file is not a recognised Kids Assessment Kit mistakes export.');
+      if(!data.items.length){$('importStatus').textContent='This export contains no mistakes. Complete a quiz with at least one incorrect answer and export again.';return;}
+      const valid=data.items.filter(x=>x&&typeof x==='object'&&x.prompt&&x.subject);
+      if(!valid.length)throw new Error('No usable mistake records were found in this file.');
+      const tagged=valid.map(x=>({...x,importedAt:new Date().toISOString(),exportedAt:data.exportedAt||null}));
+      importedMistakes=importedMistakes.concat(tagged).slice(-500);
+      localStorage.setItem('kidsImportedMistakes',JSON.stringify(importedMistakes));
+      $('importStatus').textContent='Successfully imported '+valid.length+' mistake(s) from '+file.name+'. Repeated imports are counted as additional attempts.';
+      renderGapSummary();
+    }catch(err){$('importStatus').textContent='Import failed: '+err.message;}
+    $('mistakesFile').value='';
+  }
   function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
   $('startBtn').onclick=start;$('subjectFilter').onchange=start;$('exportBtn').onclick=exportMistakes;
+  $('mistakesFile').addEventListener('change',e=>importMistakesFile(e.target.files[0]));
+  $('clearImportedBtn').onclick=()=>{
+    if(!importedMistakes.length)return;
+    if(confirm('Clear all imported mistake records from this browser?')){
+      importedMistakes=[];localStorage.removeItem('kidsImportedMistakes');
+      $('importStatus').textContent='Imported records cleared from this browser.';renderGapSummary();
+    }
+  };
+  renderGapSummary();
+
   init();
 })();
 </script>
