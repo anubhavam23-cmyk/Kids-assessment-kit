@@ -1,0 +1,58 @@
+{
+  "schemaVersion": "1.0",
+  "title": "Year 3 starter question bank",
+  "curriculum": {
+    "jurisdiction": "Victoria, Australia",
+    "version": "To be mapped against uploaded Victorian Curriculum source documents"
+  },
+  "notes": [
+    "The questions below are illustrative demo content for testing the MVP interface.",
+    "They have not been extracted from or verified against the uploaded curriculum/workbook files.",
+    "Replace or expand them with source-mapped questions as the curriculum documents are processed."
+  ],
+  "questions": [
+    {
+      "id": "DEMO-ENG-001",
+      "yearLevel": 3,
+      "subject": "English",
+      "skill": "Reading comprehension - main idea",
+      "sourceType": "demo",
+      "prompt": "Ava watered the garden every morning. Soon, bright flowers opened and bees visited them. What is the main idea?",
+      "options": [
+        "Ava enjoys watering the garden and helping plants grow.",
+        "Bees are bigger than flowers.",
+        "Ava waters the garden at night.",
+        "Flowers do not need water."
+      ],
+      "answerIndex": 0,
+      "explanation": "The passage is mainly about Ava caring for the garden and the flowers growing."
+    },
+    {
+      "id": "DEMO-ENG-002",
+      "yearLevel": 3,
+      "subject": "English",
+      "skill": "Grammar - sentence punctuation",
+      "sourceType": "demo",
+      "prompt": "Which sentence is punctuated correctly?",
+      "options": [
+        "where is my pencil.",
+        "Where is my pencil?",
+        "Where is my pencil",
+        "where is my pencil?"
+      ],
+      "answerIndex": 1,
+      "explanation": "A question begins with a capital letter and ends with a question mark."
+    },
+    {
+      "id": "DEMO-MATH-001",
+      "yearLevel": 3,
+      "subject": "Mathematics",
+      "skill": "Multiplication - equal groups",
+      "sourceType": "demo",
+      "prompt": "There are 4 bags with 3 apples in each bag. How many apples are there altogether?",
+      "options": ["7", "9", "12", "16"],
+      "answerIndex": 2,
+      "explanation": "Four groups of three is 4 × 3 = 12."
+    }
+  ]
+}
