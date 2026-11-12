@@ -108,7 +108,7 @@
       $('quizArea').innerHTML='<h2>Nice work!</h2><p>You got <strong>'+correct+' out of '+questions.length+'</strong> correct ('+(questions.length?Math.round(correct/questions.length*100):0)+'%).</p><p class="muted">'+mistakes.length+' question(s) added to your review list.</p><button class="primary" id="againBtn">Try again</button>';
       $('againBtn').onclick=start;
       $('progressBar').style.width='100%';
-      localStorage.setItem('kidsAssessmentHistory',JSON.stringify([...saved,{date:new Date().toISOString(),correct,total:questions.length,subject:$('subjectFilter').value}].slice(-100)));
+      const history=JSON.parse(localStorage.getItem('kidsAssessmentHistory')||'[]');history.push({date:new Date().toISOString(),correct,total:questions.length,subject:$('subjectFilter').value});localStorage.setItem('kidsAssessmentHistory',JSON.stringify(history.slice(-100)));
       $('correctStat').textContent=correct;
       return;
     }
