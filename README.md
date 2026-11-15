@@ -43,3 +43,12 @@ The initial questions are illustrative demo questions only. They are not claimed
 ## Privacy
 
 The MVP does not send answers to a server. Attempts are stored in the browser's local storage. Exported JSON files should be handled as private learner data.
+
+
+## Project documentation
+
+- [Product roadmap](docs/PRODUCT-ROADMAP.md)
+- [Architecture](docs/ARCHITECTURE.md)
+- [Build log](docs/BUILD-LOG.md)
+
+Development is happening incrementally on feature branches. The existing `main` branch remains the stable baseline until changes are reviewed and merged.
