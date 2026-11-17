@@ -1,0 +1,17 @@
+[
+  {
+    "_id": "ATTEMPT-EXAMPLE-001",
+    "learnerId": "LEARNER-ID-HERE",
+    "questionId": "M3-N04-001",
+    "testId": "MATHS-Y3-COMBINED-01",
+    "subject": "Mathematics",
+    "yearLevel": 3,
+    "skill": "Number - addition with regrouping",
+    "curriculumCode": "VC2M3N04",
+    "selectedAnswerIndex": 1,
+    "correctAnswerIndex": 2,
+    "isCorrect": false,
+    "timeTakenSeconds": 42,
+    "attemptedAt": "2026-11-17T00:00:00Z"
+  }
+]
